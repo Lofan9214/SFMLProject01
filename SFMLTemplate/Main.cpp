@@ -18,13 +18,17 @@ int main()
 	srand(time(NULL));
 
 	int cntCloud = rand() % 8 + 5;
-	int cntBee = rand() % 8 + 5;
+	int cntBee = rand() % 3 + 5;
 	int cntBranch = 6;
 	int bndGround = 400;
 	int dScore = 0;
 
 	bool bPause = true;
 	bool bDeath = false;
+	bool bLeftDown = false;
+	bool bRightDown = false;
+	bool bLeftKey = false;
+	bool bRightKey = false;
 
 	float scaleTime = 1.f;
 	float widTimebar = 400.f;
@@ -41,6 +45,7 @@ int main()
 	sf::Time dt;
 	float deltaTime;
 	float sumTime = 0;
+	float timerTime = 0;
 
 	sf::Texture texBackground;
 	sf::Texture texCloud;
@@ -189,6 +194,7 @@ int main()
 		deltaTime = dt.asSeconds();
 		deltaTime *= scaleTime;
 		sumTime += deltaTime;
+		timerTime += deltaTime;
 		// 메시지 (이벤트) 루프
 		sf::Event ev;
 
@@ -214,11 +220,12 @@ int main()
 						bPause = !bPause;
 						scaleTime = (bPause) ? 0.f : 1.f;
 						sumTime = 0;
+						timerTime = 0;
 						dScore = 0;
-						sprPlayer.setTexture(texPlayer);
-						
+
 						if (bDeath)
 						{
+							sprPlayer.setTexture(texPlayer);
 							bDeath = false;
 							sidBranch[0] = Sides::None;
 							for (int i = 1;i < cntBranch;++i)
@@ -239,32 +246,41 @@ int main()
 					dScore -= 10;
 					break;
 				case sf::Keyboard::Left:
+					if (!bPause)
+					{
+						if (bLeftDown)
+						{
+							break;
+						}
+						bLeftKey = true;
+						bLeftDown = true;
+					}
+					break;
 				case sf::Keyboard::Right:
 					if (!bPause)
 					{
-						for (int i = 1;i < cntBranch;++i)
+						if (bRightDown)
 						{
-							sidBranch[i - 1] = sidBranch[i];
+							break;
 						}
-						sidBranch[cntBranch - 1] = (Sides)(rand() % 3);
-						for (int i = 0;i < cntBranch;++i)
-						{
-							sprBranch[i].setScale((sidBranch[i] == Sides::Left) ? -1 : 1, 1);
-						}
-
-						sprPlayer.setScale((ev.key.code == sf::Keyboard::Left) ? -1 : 1, 1);
-
-						if (sidBranch[0] != Sides::None
-							&& sprPlayer.getScale().x * sprBranch[0].getScale().x > 0)
-						{
-							sprPlayer.setTexture(texRip);
-							bPause = true;
-							bDeath = true;
-						}
+						bRightKey = true;
+						bRightDown = true;
 					}
 					break;
 				}
 				break;
+			case sf::Event::KeyReleased:
+				switch (ev.key.code)
+				{
+				case sf::Keyboard::Left:
+					bLeftKey = false;
+					bLeftDown = false;
+					break;
+				case sf::Keyboard::Right:
+					bRightKey = false;
+					bRightDown = false;
+					break;
+				}
 			case sf::Event::MouseMoved:
 				//float angmouse;
 				//angmouse = 180 * atan2(ev.mouseMove.y - sprAxe.getPosition().y, ev.mouseMove.x - sprAxe.getPosition().x) / 3.14 + 90;
@@ -279,6 +295,38 @@ int main()
 
 		if (!bPause)
 		{
+			if ((bLeftDown && bLeftKey) || (bRightDown && bRightKey))
+			{
+				bLeftKey = false;
+				bRightKey = false;
+				for (int i = 1;i < cntBranch;++i)
+				{
+					sidBranch[i - 1] = sidBranch[i];
+				}
+				sidBranch[cntBranch - 1] = (Sides)(rand() % 3);
+				for (int i = 0;i < cntBranch;++i)
+				{
+					sprBranch[i].setScale((sidBranch[i] == Sides::Left) ? -1 : 1, 1);
+				}
+
+				sprPlayer.setScale((ev.key.code == sf::Keyboard::Left) ? -1 : 1, 1);
+
+				if (sidBranch[0] != Sides::None
+					&& sprPlayer.getScale().x * sprBranch[0].getScale().x > 0)
+				{
+					std::cout << "Game Over!" << std::endl;
+
+					sprPlayer.setTexture(texRip);
+					bPause = true;
+					bDeath = true;
+				}
+				else
+				{
+					++dScore;
+					(timerTime > 0.5f) ? timerTime -= 0.5 : timerTime = 0;
+				}
+			}
+
 			for (int i = 0; i < cntCloud;++i)
 			{
 				auto posCurCloud = sprCloud[i].getPosition();
@@ -356,12 +404,12 @@ int main()
 			}
 
 			sf::Vector2f size = timebar.getSize();
-			size.x = widTimebar - spdTimebar * sumTime;
+			size.x = widTimebar - spdTimebar * timerTime;
 			if (size.x < 0.f)
 			{
 				size.x = 0.f;
 				// 게임 오버
-
+				std::cout << "Time Out!" << std::endl;
 			}
 
 			timebar.setSize(size);
