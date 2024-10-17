@@ -3,8 +3,6 @@
 #include <time.h>
 #include <iostream>
 
-//지평선 높이 650 언저리
-
 void resetBee(sf::Sprite& sprBee, sf::Vector2f& spdBee, float& ang, int bndGround, sf::Vector2u& sizeWindow, bool first = false);
 void resetCloud(sf::Sprite& sprCloud, sf::Vector2f& spdCloud, int bndGround, sf::Vector2u& sizeWindow, bool first = false);
 
@@ -15,6 +13,7 @@ int main()
 	int cntCloud = rand() % 8 + 5;
 	int cntBee = rand() % 8 + 5;
 	int bndGround = 400;
+	float scaleTime = 0.f;
 
 	sf::VideoMode vm(1920, 1080);
 	sf::RenderWindow window(vm, "Timber!!!", sf::Style::Default);
@@ -29,6 +28,7 @@ int main()
 	sf::Texture texBee;
 	sf::Texture texTree;
 	//sf::Texture texAxe;
+	sf::Font font;
 
 	sf::Sprite sprBackground;
 	sf::Sprite sprTree;
@@ -36,13 +36,16 @@ int main()
 	sf::Sprite* sprCloud;
 	sf::Sprite* sprBee;
 	sf::Vector2u sizeWindow = window.getSize();
-	sf::Vector2u posCenter = (sf::Vector2u)(sizeWindow / 2u);
+	sf::Vector2u posCenter = sizeWindow / 2u;
 	sf::Vector2u sizeTree;
 	sf::Vector2f posBackground(sizeWindow.x / 2, sizeWindow.y / 2);
+	sf::Text txtScore;
+	sf::Text txtMessage;
 
 	sf::Vector2f posBee; // v = d / t
 	sf::Vector2f* spdBee; // v = d / t
-	float* angBee;
+	float* startyBee;
+	sf::Vector2f* initposBee;
 
 	sf::Vector2f posCloud;
 	sf::Vector2f scaCloud;
@@ -53,6 +56,7 @@ int main()
 	texCloud.loadFromFile("graphics/cloud.png");
 	texBee.loadFromFile("graphics/bee.png");
 	//texAxe.loadFromFile("graphics/axe1.png");
+	font.loadFromFile("fonts/KOMIKAP_.ttf");
 
 	sprBackground.setTexture(texBackground);
 	sprBackground.setOrigin(posCenter.x, posCenter.y);
@@ -65,7 +69,8 @@ int main()
 
 	sprBee = new sf::Sprite[cntBee];
 	spdBee = new sf::Vector2f[cntBee];
-	angBee = new float[cntBee];
+	startyBee = new float[cntBee];
+	initposBee = new sf::Vector2f[cntBee];
 
 	//sprAxe.setTexture(texAxe);
 	//sprAxe.setOrigin(texAxe.getSize().x / 2, texAxe.getSize().y / 2);
@@ -75,53 +80,45 @@ int main()
 	for (int i = 0; i < cntBee;++i)
 	{
 		sprBee[i].setTexture(texBee);
-		resetBee(sprBee[i], spdBee[i], angBee[i], bndGround, sizeWindow, true);
-		//angBee[i] = (rand() % 315) / 100.f;
-		//dirRight = rand() % 2;
-		//if (dirRight)
-		//{
-		//	sprBee[i].setScale(-(rand() % 41 + 80) / 100.f, (rand() % 41 + 80) / 100.f);
-		//	sprBee[i].setPosition(0, 600 + rand() % bndGround);
-		//	spdBee[i].x = rand() % 81 + 80.f;
-		//	spdBee[i].y = rand() % 81 + 80.f;
-		//}
-		//else
-		//{
-		//	sprBee[i].setScale((rand() % 41 + 80) / 100.f, (rand() % 41 + 80) / 100.f);
-		//	sprBee[i].setPosition(sizeWindow.x, 600 + rand() % bndGround);
-		//	spdBee[i].x = -(rand() % 81 + 80.f);
-		//	spdBee[i].y = rand() % 81 + 80.f;
-		//}
+		resetBee(sprBee[i], spdBee[i], startyBee[i], bndGround, sizeWindow, true);
 	}
 
 	sprCloud = new sf::Sprite[cntCloud];
 	spdCloud = new sf::Vector2f[cntCloud];
 
+	sf::Vector2f spdrngCloud(100.f, 200.f); //좌표를 최소값, 최대값으로 사용
+	sf::Vector2f yrngCloud(0.f, 400.f);
+
+	float leftX = 0 - 200; // 경계 검사, 왼쪽 소환
+	float rightX = sizeWindow.x + 200;
+
+	txtScore.setFont(font);
+	txtScore.setString("Score = 0");
+	txtScore.setCharacterSize(100);
+	txtScore.setFillColor(sf::Color::White);
+	txtScore.setPosition(10.f, 10.f);
+
+	txtMessage.setFont(font);
+	txtMessage.setString("PRESS ENTER TO START!");
+	txtMessage.setCharacterSize(100);
+	txtMessage.setFillColor(sf::Color::White);
+	auto bndMessage = txtMessage.getLocalBounds();
+	
+	
+	txtMessage.setOrigin(bndMessage.width * 0.5f, bndMessage.height * 0.5f);
+	txtMessage.setPosition(posCenter.x, posCenter.y);
+	
 	for (int i = 0;i < cntCloud;++i)
 	{
 		sprCloud[i].setTexture(texCloud);
 		resetCloud(sprCloud[i], spdCloud[i], bndGround, sizeWindow, true);
-		//dirRight = rand() % 2;
-		//if (dirRight)
-		//{
-		//	sprCloud[i].setScale(-(rand() % 41 + 80) / 100.f, (rand() % 41 + 80) / 100.f);
-		//	sprCloud[i].setPosition(-(rand() % 300), (rand() % bndGround) - sprCloud[i].getGlobalBounds().height);
-		//	spdCloud[i].x = rand() % 100 + 50;
-		//	spdCloud[i].y = 0.f;
-		//}
-		//else
-		//{
-		//	sprCloud[i].setScale((rand() % 41 + 80) / 100.f, (rand() % 41 + 80) / 100.f);
-		//	sprCloud[i].setPosition(sizeWindow.x + (rand() % 300), (rand() % bndGround) - sprCloud[i].getGlobalBounds().height);
-		//	spdCloud[i].x = -(rand() % 100 + 50);
-		//	spdCloud[i].y = 0.f;
-		//}
 	}
 
 	while (window.isOpen())
 	{
 		dt = clock.restart();
 		deltaTime = dt.asSeconds();
+		deltaTime *= scaleTime;
 		sumTime += deltaTime;
 		// 메시지 (이벤트) 루프
 		sf::Event ev;
@@ -140,11 +137,7 @@ int main()
 					window.close();
 					break;
 				case sf::Keyboard::Space:
-					for (int i = 0;i < 10;++i)
-					{
-						int number = rand() % 10 - 5;
-						std::cout << number << std::endl;
-					}
+					scaleTime = (scaleTime == 0.f) ? 1 : 0;
 					break;
 				}
 				break;
@@ -163,22 +156,20 @@ int main()
 		for (int i = 0; i < cntCloud;++i)
 		{
 			auto posCurCloud = sprCloud[i].getPosition();
-			auto bndCurCloud = sprCloud[i].getGlobalBounds();
+			auto bndCurCloud = sprCloud[i].getLocalBounds();
 
 			bool dirRight;
 			if (sprCloud[i].getScale().x < 0)
 			{
 				dirRight = true;
-				spdCloud[i].x += rand() % 21 - 10;
+				spdCloud[i].x += rand() % 11 - 5;
 			}
 			else
 			{
 				dirRight = false;
-				spdCloud[i].x -= rand() % 41 - 20;
+				spdCloud[i].x -= rand() % 11 - 5;
 			}
 			spdCloud[i].y = rand() % 301 - 150;
-
-
 
 			if (dirRight)
 			{
@@ -189,11 +180,11 @@ int main()
 				posCurCloud.x -= abs(spdCloud[i].x * deltaTime);
 			}
 
-			if (posCurCloud.y + sprCloud[i].getGlobalBounds().height / 2 < 0)
+			if (posCurCloud.y + sprCloud[i].getLocalBounds().height / 2 < 0)
 			{
 				posCurCloud.y += abs(spdCloud[i].y * deltaTime);
 			}
-			else if (posCurCloud.y - sprCloud[i].getGlobalBounds().height > bndGround)
+			else if (posCurCloud.y - sprCloud[i].getLocalBounds().height > bndGround)
 			{
 				posCurCloud.y -= abs(spdCloud[i].y * deltaTime);
 			}
@@ -204,30 +195,17 @@ int main()
 
 			sprCloud[i].setPosition(posCurCloud);
 
-			if ((dirRight && (posCurCloud.x - bndCurCloud.width > sizeWindow.x))
-				|| (!dirRight && (posCurCloud.x + bndCurCloud.width < 0)))
+			if ((dirRight && (posCurCloud.x - bndCurCloud.width > rightX))
+				|| (!dirRight && (posCurCloud.x + bndCurCloud.width < leftX)))
 			{
 				resetCloud(sprCloud[i], spdCloud[i], bndGround, sizeWindow);
-				//dirRight = rand() % 2;
-				//if (dirRight)
-				//{
-				//	sprCloud[i].setScale(-(rand() % 41 + 80) / 100.f, (rand() % 41 + 80) / 100.f);
-				//	bndCurCloud = sprCloud[i].getGlobalBounds();
-				//	sprCloud[i].setPosition(-(rand() % 300), (rand() % bndGround) - bndCurCloud.height);
-				//}
-				//else
-				//{
-				//	sprCloud[i].setScale((rand() % 41 + 80) / 100.f, (rand() % 41 + 80) / 100.f);
-				//	bndCurCloud = sprCloud[i].getGlobalBounds();
-				//	sprCloud[i].setPosition(sizeWindow.x + (rand() % 300), (rand() % bndGround) - bndCurCloud.height);
-				//}
 			}
 		}
 
 		for (int i = 0;i < cntBee;++i)
 		{
 			auto posCurBee = sprBee[i].getPosition();
-			auto bndCurBee = sprBee[i].getGlobalBounds();
+			auto bndCurBee = sprBee[i].getLocalBounds();
 
 			bool dirRight;
 			bool respawn = false;
@@ -240,35 +218,15 @@ int main()
 				dirRight = false;
 			}
 			posCurBee.x += spdBee[i].x * deltaTime;
-			posCurBee.y += spdBee[i].y * deltaTime * (std::sin(angBee[i] + posCurBee.x/100 * acos(-1)));
-
+			posCurBee.y += spdBee[i].y * deltaTime * (sin(startyBee[i] + sumTime * acos(-1)));
 
 			sprBee[i].setPosition(posCurBee);
 
-			if (posCurBee.x + bndCurBee.width<0
-				|| posCurBee.x - bndCurBee.width>sizeWindow.x)
+			if ((dirRight &&posCurBee.x - bndCurBee.width>rightX)
+				|| (!dirRight&&posCurBee.x + bndCurBee.width<leftX))
 			{
-				resetBee(sprBee[i], spdBee[i], angBee[i], bndGround, sizeWindow);
-				//angBee[i] = (rand() % 315) / 100.f;
-				//dirRight = rand() % 2;
-				//if (dirRight)
-				//{
-				//	sprBee[i].setScale(-(rand() % 41 + 80) / 100.f, (rand() % 41 + 80) / 100.f);
-				//	bndCurBee = sprBee[i].getGlobalBounds();
-				//	sprBee[i].setPosition(0, 600 + rand() % bndGround);
-				//	spdBee[i].x = rand() % 81 + 80.f;
-				//	spdBee[i].y = rand() % 81 + 80.f;
-				//}
-				//else
-				//{
-				//	sprBee[i].setScale((rand() % 41 + 80) / 100.f, (rand() % 41 + 80) / 100.f);
-				//	bndCurBee = sprBee[i].getGlobalBounds();
-				//	sprBee[i].setPosition(sizeWindow.x, 600 + rand() % bndGround);
-				//	spdBee[i].x = -(rand() % 81 + 80.f);
-				//	spdBee[i].y = rand() % 81 + 80.f;
-				//}
+				resetBee(sprBee[i], spdBee[i], startyBee[i], bndGround, sizeWindow);
 			}
-
 		}
 
 		// 업데이트
@@ -287,12 +245,19 @@ int main()
 		{
 			window.draw(sprBee[i]);
 		}
+		window.draw(txtScore);
+		if (scaleTime == 0)
+		{
+			window.draw(txtMessage);
+		}
+
 		//window.draw(sprAxe);
 		window.display();
 	}
 	delete[] sprBee;
 	delete[] spdBee;
-	delete[] angBee;
+	delete[] startyBee;
+	delete[] initposBee;
 	delete[] sprCloud;
 	delete[] spdCloud;
 	return 0;
