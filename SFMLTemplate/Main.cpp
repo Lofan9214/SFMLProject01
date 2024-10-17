@@ -13,6 +13,7 @@ enum class Sides
 void resetBee(sf::Sprite& sprBee, sf::Vector2f& spdBee, int bndGround, sf::Vector2u& sizeWindow, bool first = false);
 void resetCloud(sf::Sprite& sprCloud, sf::Vector2f& spdCloud, int bndGround, sf::Vector2u& sizeWindow, bool first = false);
 
+float sclVector(sf::Vector2f vector);
 float randFloat(const float& start, const float& end);
 int randInt(const int& start, const int& end);
 
@@ -32,9 +33,8 @@ int main()
 	int dEnterPressed = 0;
 	int dSpacePressed = 0;
 
-
 	bool bPause = true;
-	bool bDeath = false;
+	bool bDeath = true;
 
 	sf::Clock clock;
 	sf::Time dt;
@@ -95,35 +95,41 @@ int main()
 
 	sf::Texture texCloud;
 	sf::Sprite* sprCloud;
-	sf::Vector2f* spdCloud;
+	sf::Vector2f* velCloud;
+	int* dirRmnCloud;
+	float* angCloud;
 
 	texCloud.loadFromFile("graphics/cloud.png");
 	sprCloud = new sf::Sprite[cntCloud];
-	spdCloud = new sf::Vector2f[cntCloud];
+	velCloud = new sf::Vector2f[cntCloud];
+	dirRmnCloud = new int[cntCloud];
+	angCloud = new float[cntCloud];
 
 	for (int i = 0;i < cntCloud;++i)
 	{
 		sprCloud[i].setTexture(texCloud);
-		resetCloud(sprCloud[i], spdCloud[i], rngGround.x, sizeWindow, true);
+		resetCloud(sprCloud[i], velCloud[i], rngGround.x, sizeWindow, true);
+		dirRmnCloud[i] = randInt(0, 10);
+		angCloud[i] = randFloat(-(acos(-1) * 0.5f), acos(-1) * 0.5f);
 	}
-#pragma endrigion Cloud
+#pragma endregion Cloud
 
 #pragma region Bee
 	int cntBee = randInt(5, 9);
 	sf::Texture texBee;
 	texBee.loadFromFile("graphics/bee.png");
 	sf::Sprite* sprBee;
-	sf::Vector2f* spdBee; // v = d / t
+	sf::Vector2f* velBee; // v = d / t
 	sf::Vector2f* initposBee;
 
 	sprBee = new sf::Sprite[cntBee];
-	spdBee = new sf::Vector2f[cntBee];
+	velBee = new sf::Vector2f[cntBee];
 	initposBee = new sf::Vector2f[cntBee];
 
 	for (int i = 0; i < cntBee;++i)
 	{
 		sprBee[i].setTexture(texBee);
-		resetBee(sprBee[i], spdBee[i], rngGround.x, sizeWindow, true);
+		resetBee(sprBee[i], velBee[i], rngGround.x, sizeWindow, true);
 	}
 #pragma endregion Bee
 
@@ -255,15 +261,19 @@ int main()
 		if (dSpacePressed > 1)
 		{
 			dSpacePressed = 1;
-			if (!bPause)
+			if (!bDeath)
 			{
-				txtMessage.setString("PAUSE");
-				auto boundMessage = txtMessage.getLocalBounds();
-				txtMessage.setOrigin(boundMessage.width * 0.5f, boundMessage.height * 0.5f);
-				txtMessage.setFillColor(sf::Color::Yellow);
+				if (!bPause)
+				{
+					txtMessage.setString("PAUSE");
+					auto boundMessage = txtMessage.getLocalBounds();
+					txtMessage.setOrigin(boundMessage.width * 0.5f, boundMessage.height * 0.5f);
+					txtMessage.setFillColor(sf::Color::Yellow);
+				}
+
+				bPause = !bPause;
+				scaleTime = (bPause) ? 0.f : 1.f;
 			}
-			bPause = !bPause;
-			scaleTime = (bPause) ? 0.f : 1.f;
 		}
 		if (dEnterPressed > 1)
 		{
@@ -331,15 +341,13 @@ int main()
 			if (size.x < 0.f)
 			{
 				size.x = 0.f;
-				// 게임 오버
 				bPause = true;
 				bDeath = true;
-				txtMessage.setString("TIME OUT!\nPRESS ENTER TO RESTART!");
+				txtMessage.setString("TIME OVER!\nPRESS ENTER TO RESTART!");
 				auto boundMessage = txtMessage.getLocalBounds();
 				txtMessage.setOrigin(boundMessage.width * 0.5f, boundMessage.height * 0.5f);
 				txtMessage.setFillColor(sf::Color::Red);
 				scaleTime = 0.f;
-				std::cout << "Time Out!" << std::endl;
 			}
 
 			timebar.setSize(size);
@@ -352,47 +360,37 @@ int main()
 			auto posCurCloud = sprCloud[i].getPosition();
 			auto bndCurCloud = sprCloud[i].getLocalBounds();
 
-			bool dirRight;
-			if (sprCloud[i].getScale().x < 0)
+			if (dirRmnCloud[i]++ > 10)
 			{
-				dirRight = true;
-				spdCloud[i].x += rand() % 11 - 5;
+				angCloud[i] = randFloat(-acos(-1) * 0.5f, acos(-1) * 0.5f);
 			}
-			else
-			{
-				dirRight = false;
-				spdCloud[i].x -= rand() % 11 - 5;
-			}
-			spdCloud[i].y = rand() % 301 - 150;
+			float speed = sclVector(velCloud[i]);
 
-			if (dirRight)
+			float dirVelocity = 1;
+			if (posCurCloud.y + bndCurCloud.height * 0.5f < 0)
 			{
-				posCurCloud.x += abs(spdCloud[i].x * deltaTime);
+				angCloud[i] = abs(angCloud[i]);
 			}
-			else
+			else if (posCurCloud.y - bndCurCloud.height > rngGround.x)
 			{
-				posCurCloud.x -= abs(spdCloud[i].x * deltaTime);
+				angCloud[i] = -abs(angCloud[i]);
 			}
-
-			if (posCurCloud.y + sprCloud[i].getLocalBounds().height * 0.5f < 0)
+			if (sprCloud[i].getScale().x > 0)
 			{
-				posCurCloud.y += abs(spdCloud[i].y * deltaTime);
+				dirVelocity = -1;
 			}
-			else if (posCurCloud.y - sprCloud[i].getLocalBounds().height > rngGround.x)
-			{
-				posCurCloud.y -= abs(spdCloud[i].y * deltaTime);
-			}
-			else
-			{
-				posCurCloud.y += spdCloud[i].y * deltaTime;
-			}
+			velCloud[i].x += dirVelocity * speed * cos(angCloud[i]) * deltaTime;
+			velCloud[i].y += speed * sin(angCloud[i]) * deltaTime;
+			velCloud[i] *= speed / sclVector(velCloud[i]);
+			posCurCloud.x += velCloud[i].x * deltaTime;
+			posCurCloud.y += velCloud[i].y * deltaTime;
 
 			sprCloud[i].setPosition(posCurCloud);
 
-			if ((dirRight && (posCurCloud.x - bndCurCloud.width > rngScreenBound.y))
-				|| (!dirRight && (posCurCloud.x + bndCurCloud.width < rngScreenBound.x)))
+			if ((posCurCloud.x - bndCurCloud.width > rngScreenBound.y)
+				|| (posCurCloud.x + bndCurCloud.width < rngScreenBound.x))
 			{
-				resetCloud(sprCloud[i], spdCloud[i], rngGround.x, sizeWindow);
+				resetCloud(sprCloud[i], velCloud[i], rngGround.x, sizeWindow);
 			}
 		}
 
@@ -401,25 +399,16 @@ int main()
 			auto posCurBee = sprBee[i].getPosition();
 			auto bndCurBee = sprBee[i].getLocalBounds();
 
-			bool dirRight;
 			bool respawn = false;
-			if (sprBee[i].getScale().x < 0)
-			{
-				dirRight = true;
-			}
-			else
-			{
-				dirRight = false;
-			}
-			posCurBee.x += spdBee[i].x * deltaTime;
-			posCurBee.y += spdBee[i].y * deltaTime * (sin(spdBee[i].x + envTime * acos(-1)));
+			posCurBee.x += velBee[i].x * deltaTime;
+			posCurBee.y += velBee[i].y * deltaTime * (sin((velBee[i].y / 25.4f) + envTime * acos(-1)));
 
 			sprBee[i].setPosition(posCurBee);
 
-			if ((dirRight && posCurBee.x - bndCurBee.width > rngScreenBound.y)
-				|| (!dirRight && posCurBee.x + bndCurBee.width < rngScreenBound.x))
+			if ((posCurBee.x - bndCurBee.width > rngScreenBound.y)
+				|| (posCurBee.x + bndCurBee.width < rngScreenBound.x))
 			{
-				resetBee(sprBee[i], spdBee[i], rngGround.x, sizeWindow);
+				resetBee(sprBee[i], velBee[i], rngGround.x, sizeWindow);
 			}
 		}
 
@@ -462,10 +451,12 @@ int main()
 #pragma endregion DrawRegion
 	}
 	delete[] sprBee;
+	delete[] velBee;
 	delete[] sprBranch;
 	delete[] sprCloud;
-	delete[] spdBee;
-	delete[] spdCloud;
+	delete[] velCloud;
+	delete[] angCloud;
+	delete[] dirRmnCloud;
 	delete[] initposBee;
 	delete[] sidBranch;
 	return 0;
@@ -476,10 +467,8 @@ void resetBee(sf::Sprite& sprBee, sf::Vector2f& spdBee, int bndGround, sf::Vecto
 	bool dirLeft = randInt(0, 2);
 	sf::FloatRect bndCurBee;
 
-	float angle = randFloat(0, acos(0));
-	float speed = randInt(140, 220);
-	float speedx = speed * cos(angle);
-	float speedy = speed * sin(angle);
+	float speedx = randInt(80, 160);
+	float speedy = randInt(80, 160);
 	float scalex = -randFloat(0.8f, 1.6f);
 	float scaley = randFloat(0.8f, 1.6f);
 
@@ -507,7 +496,7 @@ void resetCloud(sf::Sprite& sprCloud, sf::Vector2f& spdCloud, int bndGround, sf:
 	bool dirLeft = randInt(0, 2);
 	sf::FloatRect bndCurCloud;
 
-	float speedx = randFloat(100.f, 200.f);
+	float speedx = randFloat(120.f, 200.f);
 	float speedy = 0.f;
 	float scalex = -(randFloat(0.8f, 1.8f));
 	float scaley = randFloat(0.8f, 1.8f);
@@ -531,6 +520,11 @@ void resetCloud(sf::Sprite& sprCloud, sf::Vector2f& spdCloud, int bndGround, sf:
 	sprCloud.setPosition(spawnx, spawny);
 	spdCloud.x = speedx;
 	spdCloud.y = speedy;
+}
+
+float sclVector(sf::Vector2f vector)
+{
+	return sqrt(vector.x * vector.x + vector.y * vector.y);
 }
 
 float randFloat(const float& start, const float& end)
