@@ -359,31 +359,24 @@ int main()
 		{
 			auto posCurCloud = sprCloud[i].getPosition();
 			auto bndCurCloud = sprCloud[i].getLocalBounds();
+			float curangle = atan2(velCloud[i].y, velCloud[i].x);
+			float speed = sclVector(velCloud[i]);
 
 			if (dirRmnCloud[i]++ > 10)
 			{
-				angCloud[i] = randFloat(-acos(-1) * 0.5f, acos(-1) * 0.5f);
+				angCloud[i] = randFloat(-acos(-1) * 0.3f, acos(-1) * 0.3f);
 			}
-			float speed = sclVector(velCloud[i]);
 
-			float dirVelocity = 1;
-			if (posCurCloud.y + bndCurCloud.height * 0.5f < 0)
+			if ((posCurCloud.y + bndCurCloud.height * 0.5f < 0 && angCloud[i] < 0)
+				|| (posCurCloud.y + bndCurCloud.height > rngGround.x && angCloud[i] > 0))
 			{
-				angCloud[i] = abs(angCloud[i]);
+				angCloud[i] = -angCloud[i];
 			}
-			else if (posCurCloud.y - bndCurCloud.height > rngGround.x)
-			{
-				angCloud[i] = -abs(angCloud[i]);
-			}
-			if (sprCloud[i].getScale().x > 0)
-			{
-				dirVelocity = -1;
-			}
-			velCloud[i].x += dirVelocity * speed * cos(angCloud[i]) * deltaTime;
-			velCloud[i].y += speed * sin(angCloud[i]) * deltaTime;
-			velCloud[i] *= speed / sclVector(velCloud[i]);
-			posCurCloud.x += velCloud[i].x * deltaTime;
-			posCurCloud.y += velCloud[i].y * deltaTime;
+			curangle += angCloud[i] * deltaTime*0.2f;
+
+			velCloud[i].x = speed * cos(curangle);
+			velCloud[i].y = speed * sin(curangle);
+			posCurCloud += velCloud[i] * deltaTime;
 
 			sprCloud[i].setPosition(posCurCloud);
 
@@ -496,8 +489,8 @@ void resetCloud(sf::Sprite& sprCloud, sf::Vector2f& spdCloud, int bndGround, sf:
 	bool dirLeft = randInt(0, 2);
 	sf::FloatRect bndCurCloud;
 
-	float speedx = randFloat(120.f, 200.f);
-	float speedy = 0.f;
+	float speedx = randFloat(100.f, 150.f);
+	float speedy = 0;
 	float scalex = -(randFloat(0.8f, 1.8f));
 	float scaley = randFloat(0.8f, 1.8f);
 	float spawnx = 0;
