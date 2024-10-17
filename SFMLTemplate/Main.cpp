@@ -12,8 +12,8 @@ int main()
 {
 	srand(time(NULL));
 
-	int cntCloud = rand() % 8 + 3;
-	int cntBee = rand() % 8 + 3;
+	int cntCloud = rand() % 8 + 5;
+	int cntBee = rand() % 8 + 5;
 	int bndGround = 400;
 
 	sf::VideoMode vm(1920, 1080);
@@ -28,11 +28,11 @@ int main()
 	sf::Texture texCloud;
 	sf::Texture texBee;
 	sf::Texture texTree;
-	sf::Texture texAxe;
+	//sf::Texture texAxe;
 
 	sf::Sprite sprBackground;
 	sf::Sprite sprTree;
-	sf::Sprite sprAxe;
+	//sf::Sprite sprAxe;
 	sf::Sprite* sprCloud;
 	sf::Sprite* sprBee;
 	sf::Vector2u sizeWindow = window.getSize();
@@ -52,7 +52,7 @@ int main()
 	texTree.loadFromFile("graphics/tree.png");
 	texCloud.loadFromFile("graphics/cloud.png");
 	texBee.loadFromFile("graphics/bee.png");
-	texAxe.loadFromFile("graphics/axe1.png");
+	//texAxe.loadFromFile("graphics/axe1.png");
 
 	sprBackground.setTexture(texBackground);
 	sprBackground.setOrigin(posCenter.x, posCenter.y);
@@ -67,15 +67,15 @@ int main()
 	spdBee = new sf::Vector2f[cntBee];
 	angBee = new float[cntBee];
 
-	sprAxe.setTexture(texAxe);
-	sprAxe.setOrigin(texAxe.getSize().x / 2, texAxe.getSize().y / 2);
-	sprAxe.setPosition(posCenter.x, posCenter.y * 1.5);
+	//sprAxe.setTexture(texAxe);
+	//sprAxe.setOrigin(texAxe.getSize().x / 2, texAxe.getSize().y / 2);
+	//sprAxe.setPosition(posCenter.x, posCenter.y * 1.5);
 
 	bool dirRight;
 	for (int i = 0; i < cntBee;++i)
 	{
 		sprBee[i].setTexture(texBee);
-		resetBee(sprBee[i], spdBee[i], angBee[i], bndGround, sizeWindow,true);
+		resetBee(sprBee[i], spdBee[i], angBee[i], bndGround, sizeWindow, true);
 		//angBee[i] = (rand() % 315) / 100.f;
 		//dirRight = rand() % 2;
 		//if (dirRight)
@@ -100,7 +100,7 @@ int main()
 	for (int i = 0;i < cntCloud;++i)
 	{
 		sprCloud[i].setTexture(texCloud);
-		resetCloud(sprCloud[i], spdCloud[i], bndGround, sizeWindow,true);
+		resetCloud(sprCloud[i], spdCloud[i], bndGround, sizeWindow, true);
 		//dirRight = rand() % 2;
 		//if (dirRight)
 		//{
@@ -149,10 +149,10 @@ int main()
 				}
 				break;
 			case sf::Event::MouseMoved:
-				float angmouse;
-				angmouse = 180 * atan2(ev.mouseMove.y - sprAxe.getPosition().y, ev.mouseMove.x - sprAxe.getPosition().x) / 3.14 + 90;
-
-				sprAxe.setRotation(angmouse);
+				//float angmouse;
+				//angmouse = 180 * atan2(ev.mouseMove.y - sprAxe.getPosition().y, ev.mouseMove.x - sprAxe.getPosition().x) / 3.14 + 90;
+				//
+				//sprAxe.setRotation(angmouse);
 				break;
 
 			default:
@@ -169,12 +169,12 @@ int main()
 			if (sprCloud[i].getScale().x < 0)
 			{
 				dirRight = true;
-				spdCloud[i].x += rand() % 31 - 15;
+				spdCloud[i].x += rand() % 21 - 10;
 			}
 			else
 			{
 				dirRight = false;
-				spdCloud[i].x += -(rand() % 31 - 15);
+				spdCloud[i].x -= rand() % 41 - 20;
 			}
 			spdCloud[i].y = rand() % 301 - 150;
 
@@ -240,7 +240,7 @@ int main()
 				dirRight = false;
 			}
 			posCurBee.x += spdBee[i].x * deltaTime;
-			posCurBee.y += spdBee[i].y * deltaTime * (std::sin(angBee[i] + sumTime * acos(-1)));
+			posCurBee.y += spdBee[i].y * deltaTime * (std::sin(angBee[i] + posCurBee.x/100 * acos(-1)));
 
 
 			sprBee[i].setPosition(posCurBee);
@@ -287,7 +287,7 @@ int main()
 		{
 			window.draw(sprBee[i]);
 		}
-		window.draw(sprAxe);
+		//window.draw(sprAxe);
 		window.display();
 	}
 	delete[] sprBee;
@@ -298,54 +298,64 @@ int main()
 	return 0;
 }
 
-void resetBee(sf::Sprite& sprBee, sf::Vector2f& spdBee, float& ang, int bndGround, sf::Vector2u& sizeWindow, bool first )
+void resetBee(sf::Sprite& sprBee, sf::Vector2f& spdBee, float& ang, int bndGround, sf::Vector2u& sizeWindow, bool first)
 {
 	ang = (rand() % 315) / 100.f;
-	bool dirRight = rand() % 2;
+	bool dirLeft = rand() % 2;
 	sf::FloatRect bndCurBee;
-	if (dirRight)
+
+	float speedx = rand() % 81 + 80.f;
+	float speedy = rand() % 81 + 80.f;
+	float scalex = -(rand() % 41 + 80) / 100.f;
+	float scaley = (rand() % 41 + 80) / 100.f;
+
+	float spawnx = 0;
+	float spawny = 600 + rand() % bndGround;
+
+	if (dirLeft)
 	{
-		sprBee.setScale(-(rand() % 41 + 80) / 100.f, (rand() % 41 + 80) / 100.f);
-		bndCurBee = sprBee.getGlobalBounds();
-		sprBee.setPosition(0, 600 + rand() % bndGround);
-		spdBee.x = rand() % 81 + 80.f;
-		spdBee.y = rand() % 81 + 80.f;
-	}
-	else
-	{
-		sprBee.setScale((rand() % 41 + 80) / 100.f, (rand() % 41 + 80) / 100.f);
-		bndCurBee = sprBee.getGlobalBounds();
-		sprBee.setPosition(sizeWindow.x, 600 + rand() % bndGround);
-		spdBee.x = -(rand() % 81 + 80.f);
-		spdBee.y = rand() % 81 + 80.f;
+		spawnx = sizeWindow.x;
+		speedx = -speedx;
+		scalex = -scalex;
 	}
 	if (first)
 	{
-		sprBee.setPosition(rand() % sizeWindow.x, 600 + rand() % bndGround);
+		spawnx = rand() % sizeWindow.x;
 	}
+	spdBee.x = speedx;
+	spdBee.y = speedy;
+	sprBee.setPosition(spawnx, spawny);
+	sprBee.setScale(scalex, scaley);
 }
 
 void resetCloud(sf::Sprite& sprCloud, sf::Vector2f& spdCloud, int bndGround, sf::Vector2u& sizeWindow, bool first)
 {
-	bool dirRight = rand() % 2;
+	bool dirLeft = rand() % 2;
 	sf::FloatRect bndCurCloud;
 
-	if (dirRight)
-	{
-		sprCloud.setScale(-(rand() % 41 + 80) / 100.f, (rand() % 41 + 80) / 100.f);
-		bndCurCloud = sprCloud.getGlobalBounds();
+	float speedx = rand() % 100 + 100;
+	float speedy = 0.f;
+	float scalex = -(rand() % 41 + 80) / 100.f;
+	float scaley = (rand() % 41 + 80) / 100.f;
 
-		sprCloud.setPosition(0, (rand() % bndGround) - bndCurCloud.height);
-	}
-	else
-	{
-		sprCloud.setScale((rand() % 41 + 80) / 100.f, (rand() % 41 + 80) / 100.f);
-		bndCurCloud = sprCloud.getGlobalBounds();
+	float spawnx = 0;
+	float spawny = 0;
 
-		sprCloud.setPosition(sizeWindow.x, (rand() % bndGround) - bndCurCloud.height);
+	if (dirLeft)
+	{
+		scalex = -scalex;
+		speedx = -speedx;
+		spawnx = sizeWindow.x;
 	}
 	if (first)
 	{
-		sprCloud.setPosition(rand() % sizeWindow.x, (rand() % bndGround) - bndCurCloud.height);
+		spawnx = rand() % sizeWindow.x;
 	}
+
+	sprCloud.setScale(scalex, scaley);
+	bndCurCloud = sprCloud.getGlobalBounds();
+	spawny = (rand() % bndGround) - bndCurCloud.height;
+	sprCloud.setPosition(spawnx, spawny);
+	spdCloud.x = speedx;
+	spdCloud.y = speedy;
 }
