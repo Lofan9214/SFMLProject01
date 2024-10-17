@@ -5,8 +5,8 @@
 
 //지평선 높이 650 언저리
 
-void resetBee(sf::Sprite& sprBee, sf::Vector2f& spdBee, float& ang, int bndGround, sf::Vector2u& sizeWindow);
-void resetCloud(sf::Sprite& sprCloud, sf::Vector2f& spdCloud, int bndGround, sf::Vector2u& sizeWindow);
+void resetBee(sf::Sprite& sprBee, sf::Vector2f& spdBee, float& ang, int bndGround, sf::Vector2u& sizeWindow, bool first = false);
+void resetCloud(sf::Sprite& sprCloud, sf::Vector2f& spdCloud, int bndGround, sf::Vector2u& sizeWindow, bool first = false);
 
 int main()
 {
@@ -75,7 +75,7 @@ int main()
 	for (int i = 0; i < cntBee;++i)
 	{
 		sprBee[i].setTexture(texBee);
-		resetBee(sprBee[i], spdBee[i], angBee[i], bndGround, sizeWindow);
+		resetBee(sprBee[i], spdBee[i], angBee[i], bndGround, sizeWindow,true);
 		//angBee[i] = (rand() % 315) / 100.f;
 		//dirRight = rand() % 2;
 		//if (dirRight)
@@ -100,7 +100,7 @@ int main()
 	for (int i = 0;i < cntCloud;++i)
 	{
 		sprCloud[i].setTexture(texCloud);
-		resetCloud(sprCloud[i], spdCloud[i], bndGround, sizeWindow);
+		resetCloud(sprCloud[i], spdCloud[i], bndGround, sizeWindow,true);
 		//dirRight = rand() % 2;
 		//if (dirRight)
 		//{
@@ -298,7 +298,7 @@ int main()
 	return 0;
 }
 
-void resetBee(sf::Sprite& sprBee, sf::Vector2f& spdBee, float& ang, int bndGround, sf::Vector2u& sizeWindow)
+void resetBee(sf::Sprite& sprBee, sf::Vector2f& spdBee, float& ang, int bndGround, sf::Vector2u& sizeWindow, bool first )
 {
 	ang = (rand() % 315) / 100.f;
 	bool dirRight = rand() % 2;
@@ -319,9 +319,13 @@ void resetBee(sf::Sprite& sprBee, sf::Vector2f& spdBee, float& ang, int bndGroun
 		spdBee.x = -(rand() % 81 + 80.f);
 		spdBee.y = rand() % 81 + 80.f;
 	}
+	if (first)
+	{
+		sprBee.setPosition(rand() % sizeWindow.x, 600 + rand() % bndGround);
+	}
 }
 
-void resetCloud(sf::Sprite& sprCloud, sf::Vector2f& spdCloud, int bndGround, sf::Vector2u& sizeWindow)
+void resetCloud(sf::Sprite& sprCloud, sf::Vector2f& spdCloud, int bndGround, sf::Vector2u& sizeWindow, bool first)
 {
 	bool dirRight = rand() % 2;
 	sf::FloatRect bndCurCloud;
@@ -330,12 +334,18 @@ void resetCloud(sf::Sprite& sprCloud, sf::Vector2f& spdCloud, int bndGround, sf:
 	{
 		sprCloud.setScale(-(rand() % 41 + 80) / 100.f, (rand() % 41 + 80) / 100.f);
 		bndCurCloud = sprCloud.getGlobalBounds();
-		sprCloud.setPosition(-(rand() % 300), (rand() % bndGround) - bndCurCloud.height);
+
+		sprCloud.setPosition(0, (rand() % bndGround) - bndCurCloud.height);
 	}
 	else
 	{
 		sprCloud.setScale((rand() % 41 + 80) / 100.f, (rand() % 41 + 80) / 100.f);
 		bndCurCloud = sprCloud.getGlobalBounds();
-		sprCloud.setPosition(sizeWindow.x + (rand() % 300), (rand() % bndGround) - bndCurCloud.height);
+
+		sprCloud.setPosition(sizeWindow.x, (rand() % bndGround) - bndCurCloud.height);
+	}
+	if (first)
+	{
+		sprCloud.setPosition(rand() % sizeWindow.x, (rand() % bndGround) - bndCurCloud.height);
 	}
 }
