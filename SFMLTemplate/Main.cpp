@@ -24,6 +24,7 @@ int main()
 	int dScore = 0;
 
 	bool bPause = true;
+	bool bDeath = false;
 
 	float scaleTime = 1.f;
 	float widTimebar = 400.f;
@@ -54,6 +55,7 @@ int main()
 
 	sf::Sprite sprBackground;
 	sf::Sprite sprTree;
+	sf::Sprite sprPlayer;
 	//sf::Sprite sprAxe;
 	sf::Sprite* sprCloud;
 	sf::Sprite* sprBee;
@@ -69,9 +71,11 @@ int main()
 	sf::RectangleShape timebar;
 
 	sf::Vector2f orgBranch;
+	sf::Vector2f orgPlayer;
 	sf::Vector2f posBackground(sizeWindow.x * 0.5f, sizeWindow.y * 0.5f);
 	sf::Vector2f posBee;
 	sf::Vector2f posBranch;
+	sf::Vector2f posPlayer;
 	sf::Vector2f* spdBee; // v = d / t
 	sf::Vector2f* initposBee;
 
@@ -86,7 +90,10 @@ int main()
 	texCloud.loadFromFile("graphics/cloud.png");
 	texBee.loadFromFile("graphics/bee.png");
 	texBranch.loadFromFile("graphics/branch.png");
+	texPlayer.loadFromFile("graphics/player.png");
+	texRip.loadFromFile("graphics/rip.png");
 	//texAxe.loadFromFile("graphics/axe1.png");
+
 	font.loadFromFile("fonts/KOMIKAP_.ttf");
 
 	sprBackground.setTexture(texBackground);
@@ -117,13 +124,13 @@ int main()
 	sprBranch = new sf::Sprite[cntBranch];
 	orgBranch.x = -(texTree.getSize().x * 0.5f);
 	orgBranch.y = texBranch.getSize().y * 0.5f;
-	posBranch = sf::Vector2f(posCenter.x, 650.f);
+	posBranch = sf::Vector2f(posCenter.x, 750.f);
 	for (int i = 0;i < cntBranch;++i)
 	{
 		sprBranch[i].setTexture(texBranch);
 		sprBranch[i].setOrigin(orgBranch);
 
-		sidBranch[i] = (Sides)(rand() % 3);
+		sidBranch[i] = (i != 0) ? (Sides)(rand() % 3) : Sides::None;
 
 		sprBranch[i].setPosition(posBranch);
 		posBranch.y -= 150.f;
@@ -134,6 +141,13 @@ int main()
 		}
 	}
 
+	sprPlayer.setTexture(texPlayer);
+	orgPlayer.x = -(texTree.getSize().x * 1.f);
+	orgPlayer.y = texPlayer.getSize().y;
+	sprPlayer.setOrigin(orgPlayer);
+	posPlayer.x = posCenter.x;
+	posPlayer.y = texTree.getSize().y;
+	sprPlayer.setPosition(posPlayer);
 
 	sprCloud = new sf::Sprite[cntCloud];
 	spdCloud = new sf::Vector2f[cntCloud];
@@ -195,17 +209,59 @@ int main()
 					scaleTime = (scaleTime == 0.f) ? 1.f : 0.f;
 					break;
 				case sf::Keyboard::Return:
-					bPause = !bPause;
-					scaleTime = (bPause) ? 0.f : 1.f;
-					sumTime = 0;
-					dScore = 0;
+					if (bPause)
+					{
+						bPause = !bPause;
+						scaleTime = (bPause) ? 0.f : 1.f;
+						sumTime = 0;
+						dScore = 0;
+						sprPlayer.setTexture(texPlayer);
+						
+						if (bDeath)
+						{
+							bDeath = false;
+							sidBranch[0] = Sides::None;
+							for (int i = 1;i < cntBranch;++i)
+							{
+								sidBranch[i] = (Sides)(rand() % 3);
+							}
+							for (int i = 0;i < cntBranch;++i)
+							{
+								sprBranch[i].setScale((sidBranch[i] == Sides::Left) ? -1 : 1, 1);
+							}
+						}
+					}
 					break;
 				case sf::Keyboard::Num1:
 					dScore += 10;
 					break;
 				case sf::Keyboard::Num2:
 					dScore -= 10;
+					break;
+				case sf::Keyboard::Left:
+				case sf::Keyboard::Right:
+					if (!bPause)
+					{
+						for (int i = 1;i < cntBranch;++i)
+						{
+							sidBranch[i - 1] = sidBranch[i];
+						}
+						sidBranch[cntBranch - 1] = (Sides)(rand() % 3);
+						for (int i = 0;i < cntBranch;++i)
+						{
+							sprBranch[i].setScale((sidBranch[i] == Sides::Left) ? -1 : 1, 1);
+						}
 
+						sprPlayer.setScale((ev.key.code == sf::Keyboard::Left) ? -1 : 1, 1);
+
+						if (sidBranch[0] != Sides::None
+							&& sprPlayer.getScale().x * sprBranch[0].getScale().x > 0)
+						{
+							sprPlayer.setTexture(texRip);
+							bPause = true;
+							bDeath = true;
+						}
+					}
 					break;
 				}
 				break;
@@ -333,6 +389,7 @@ int main()
 		}
 
 		window.draw(sprTree);
+		window.draw(sprPlayer);
 		for (int i = 0;i < cntBee;++i)
 		{
 			window.draw(sprBee[i]);
