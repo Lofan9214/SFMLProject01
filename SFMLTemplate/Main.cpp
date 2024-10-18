@@ -10,6 +10,26 @@ enum class Sides
 	None,
 };
 
+enum class State
+{
+	Start,
+	Pause,
+	Death,
+	Gaming,
+};
+enum class Key
+{
+	None,
+	LeftPressing,
+	LeftPressed,
+	RightPressing,
+	RightPressed,
+	ReturnPressing,
+	ReturnPressed,
+	SpacePressing,
+	SpacePressed,
+};
+
 void resetBee(sf::Sprite& sprBee, sf::Vector2f& spdBee, int bndGround, sf::Vector2u& sizeWindow, bool first = false);
 void resetCloud(sf::Sprite& sprCloud, sf::Vector2f& spdCloud, int bndGround, sf::Vector2u& sizeWindow, bool first = false);
 
@@ -28,10 +48,9 @@ int main()
 	sf::Vector2u sizeWindow = window.getSize();
 	sf::Vector2u posCenter = sizeWindow / 2u;
 
+	State eState = State::Start;
+	Key eKey = Key::None;
 	int dScore = 0;
-	int dArrowPressed = 0;
-	int dEnterPressed = 0;
-	int dSpacePressed = 0;
 
 	bool bPause = true;
 	bool bDeath = true;
@@ -96,20 +115,20 @@ int main()
 	sf::Texture texCloud;
 	sf::Sprite* sprCloud;
 	sf::Vector2f* velCloud;
-	int* dirRmnCloud;
+	int* dirDurCloud;
 	float* angCloud;
 
 	texCloud.loadFromFile("graphics/cloud.png");
 	sprCloud = new sf::Sprite[cntCloud];
 	velCloud = new sf::Vector2f[cntCloud];
-	dirRmnCloud = new int[cntCloud];
+	dirDurCloud = new int[cntCloud];
 	angCloud = new float[cntCloud];
 
 	for (int i = 0;i < cntCloud;++i)
 	{
 		sprCloud[i].setTexture(texCloud);
 		resetCloud(sprCloud[i], velCloud[i], rngGround.x, sizeWindow, true);
-		dirRmnCloud[i] = randInt(0, 10);
+		dirDurCloud[i] = randInt(0, 10);
 		angCloud[i] = randFloat(-(acos(-1) * 0.5f), acos(-1) * 0.5f);
 	}
 #pragma endregion Cloud
@@ -217,75 +236,96 @@ int main()
 					window.close();
 					break;
 				case sf::Keyboard::Space:
-					if (dSpacePressed < 2)
+					if (eKey == Key::None)
 					{
-						dSpacePressed = 2;
+						eKey = Key::SpacePressed;
 					}
 					break;
 				case sf::Keyboard::Return:
-					if (dEnterPressed < 2)
+					if (eKey == Key::None)
 					{
-						dEnterPressed = 2;
+						eKey = Key::ReturnPressed;
 					}
 					break;
 				case sf::Keyboard::Left:
-					if (!bPause && dArrowPressed < 2)
+					if (eState == State::Gaming && eKey == Key::None)
 					{
-						dArrowPressed = 2;
+						eKey = Key::LeftPressed;
 					}
 					break;
 				case sf::Keyboard::Right:
-					if (!bPause && dArrowPressed < 2)
+					if (eState == State::Gaming && eKey == Key::None)
 					{
-						dArrowPressed = 4;
+						eKey = Key::RightPressed;
 					}
 					break;
 				}
 				break;
 			case sf::Event::KeyReleased:
-				switch (ev.key.code)
+				if (eKey != Key::None)
 				{
-				case sf::Keyboard::Left:
-				case sf::Keyboard::Right:
-					dArrowPressed = 0;
-					break;
-				case sf::Keyboard::Space:
-					dSpacePressed = 0;
-					break;
+					switch (ev.key.code)
+					{
+					case sf::Keyboard::Left:
+						if (eKey == Key::LeftPressing)
+						{
+							eKey = Key::None;
+						}
+						break;
+					case sf::Keyboard::Right:
+						if (eKey == Key::RightPressing)
+						{
+							eKey = Key::None;
+						}
+						break;
+					case sf::Keyboard::Space:
+						if (eKey == Key::SpacePressing)
+						{
+							eKey = Key::None;
+						}
+						break;
+					case sf::Keyboard::Return:
+						if (eKey == Key::ReturnPressing)
+						{
+							eKey = Key::None;
+						}
+						break;
+					}
 				}
 			default:
 				break;
 			}
 		}
 
-		if (dSpacePressed > 1)
+		if (eKey == Key::SpacePressed)
 		{
-			dSpacePressed = 1;
-			if (!bDeath)
+			eKey = Key::SpacePressing;
+			if (eState != State::Start)
 			{
-				if (!bPause)
+				if (eState == State::Gaming)
 				{
 					txtMessage.setString("PAUSE");
 					auto boundMessage = txtMessage.getLocalBounds();
 					txtMessage.setOrigin(boundMessage.width * 0.5f, boundMessage.height * 0.5f);
 					txtMessage.setFillColor(sf::Color::Yellow);
+					eState = State::Pause;
 				}
-
-				bPause = !bPause;
-				scaleTime = (bPause) ? 0.f : 1.f;
+				else if (eState != State::Death)
+				{
+					eState = State::Gaming;
+				}
+				scaleTime = (eState == State::Gaming) ? 1.f : 0.f;
 			}
 		}
-		if (dEnterPressed > 1)
+		if (eKey == Key::ReturnPressed)
 		{
-			dEnterPressed = 1;
-			if (bPause)
+			eKey = Key::ReturnPressing;
+			if (eState == State::Death || eState == State::Start)
 			{
-				bPause = !bPause;
-				scaleTime = (bPause) ? 0.f : 1.f;
+				scaleTime = 1.f;
 				gamTime = 0;
 				dScore = 0;
-
-				if (bDeath)
+				if (eState == State::Death)
 				{
 					sprPlayer.setTexture(texPlayer);
 					bDeath = false;
@@ -299,11 +339,12 @@ int main()
 						sprBranch[i].setScale((sidBranch[i] == Sides::Left) ? -1 : 1, 1);
 					}
 				}
+				eState = State::Gaming;
 			}
 		}
-		if (!bPause)
+		if (eState == State::Gaming)
 		{
-			if (dArrowPressed > 1)
+			if (eKey == Key::LeftPressed || eKey == Key::RightPressed)
 			{
 				for (int i = 1;i < cntBranch;++i)
 				{
@@ -315,25 +356,24 @@ int main()
 					sprBranch[i].setScale((sidBranch[i] == Sides::Left) ? -1 : 1, 1);
 				}
 
-				sprPlayer.setScale((dArrowPressed > 2) ? 1 : -1, 1);
+				sprPlayer.setScale((eKey == Key::RightPressed) ? 1 : -1, 1);
 
 				if (sidBranch[0] != Sides::None
 					&& sprPlayer.getScale().x * sprBranch[0].getScale().x > 0)
 				{
 					sprPlayer.setTexture(texRip);
-					bPause = true;
-					bDeath = true;
 					txtMessage.setString("GAME OVER!\nPRESS ENTER TO RESTART!");
 					auto boundMessage = txtMessage.getLocalBounds();
 					txtMessage.setOrigin(boundMessage.width * 0.5f, boundMessage.height * 0.5f);
 					txtMessage.setFillColor(sf::Color::Red);
+					eState = State::Death;
 				}
 				else
 				{
 					++dScore;
 					gamTime > 0.5f ? gamTime -= 0.5 : gamTime = 0;
 				}
-				dArrowPressed = 1;
+				eKey = (Key)((int)eKey - 1);
 			}
 
 			sf::Vector2f size = timebar.getSize();
@@ -341,8 +381,7 @@ int main()
 			if (size.x < 0.f)
 			{
 				size.x = 0.f;
-				bPause = true;
-				bDeath = true;
+				eState = State::Death;
 				txtMessage.setString("TIME OVER!\nPRESS ENTER TO RESTART!");
 				auto boundMessage = txtMessage.getLocalBounds();
 				txtMessage.setOrigin(boundMessage.width * 0.5f, boundMessage.height * 0.5f);
@@ -362,17 +401,18 @@ int main()
 			float curangle = atan2(velCloud[i].y, velCloud[i].x);
 			float speed = sclVector(velCloud[i]);
 
-			if (dirRmnCloud[i]++ > 10)
+			if (dirDurCloud[i]++ > 10)
 			{
-				angCloud[i] = randFloat(-acos(-1) * 0.3f, acos(-1) * 0.3f);
+				angCloud[i] = randFloat(-acos(-1) * 0.05f, acos(-1) * 0.05f);
+				dirDurCloud[i] = 0;
 			}
 
-			if ((posCurCloud.y + bndCurCloud.height * 0.5f < 0 && angCloud[i] < 0)
-				|| (posCurCloud.y + bndCurCloud.height > rngGround.x && angCloud[i] > 0))
+			if ((posCurCloud.y + bndCurCloud.height * 0.5f < 0 || posCurCloud.y + bndCurCloud.height > rngGround.x)
+				&& sin(angCloud[i]) * sin(curangle) > 0)
 			{
 				angCloud[i] = -angCloud[i];
 			}
-			curangle += angCloud[i] * deltaTime*0.2f;
+			curangle += angCloud[i] * deltaTime;
 
 			velCloud[i].x = speed * cos(curangle);
 			velCloud[i].y = speed * sin(curangle);
@@ -433,7 +473,7 @@ int main()
 			window.draw(sprBee[i]);
 		}
 		window.draw(txtScore);
-		if (bPause || bDeath)
+		if (eState != State::Gaming)
 		{
 			window.draw(txtMessage);
 		}
@@ -449,7 +489,7 @@ int main()
 	delete[] sprCloud;
 	delete[] velCloud;
 	delete[] angCloud;
-	delete[] dirRmnCloud;
+	delete[] dirDurCloud;
 	delete[] initposBee;
 	delete[] sidBranch;
 	return 0;
